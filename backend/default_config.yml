@@ -1,0 +1,27 @@
+API_TITLE: Backend API
+API_VERSION: v1
+
+# default user account
+DEFAULT_USER:
+    username: null
+    password: null
+    first_name: null
+    last_name: null
+
+# secret key to sign the JWT access tocken (HS256 symmetric algorithm)
+JWT_SECRET_KEY: null
+# openapi.json version and URL prefix
+OPENAPI_VERSION: null
+OPENAPI_URL_PREFIX: null
+
+#
+# Database
+#
+
+# database settings
+MONGODB_SETTINGS:
+    host: null
+#
+# socketio
+#
+SECRET_KEY: null

@@ -1,0 +1,27 @@
+API_TITLE: Backend API
+API_VERSION: v1
+
+# default user account
+DEFAULT_USER:
+    username: admin
+    password: admin
+    first_name: Nicolas 
+    last_name: Hernandez
+
+# secret key to sign the JWT access tocken (HS256 symmetric algorithm)
+JWT_SECRET_KEY: ZjQzMDFhY2Q3YmI3NDRiNDBjZjYxNmVi
+# openapi.json version and URL prefix
+OPENAPI_VERSION: 3.0.3
+OPENAPI_URL_PREFIX: /
+
+#
+# Database
+#
+
+# database settings
+MONGODB_SETTINGS:
+    host: mongodb://localhost/backend
+#
+# socketio
+#
+SECRET_KEY: secret!
