@@ -1,7 +1,7 @@
 """ App initialization module."""
 import os
 from flask import Flask
-from backend import config, training
+from backend import config, exercise
 from backend.extension import api, socketio, mongo, jwt
 from backend.config import Struct
 
@@ -58,7 +58,7 @@ def register_blueprints(app):
     )
 
     # register bluprints
-    api.register_blueprint(training.blueprint.bp)
+    api.register_blueprint(exercise.blueprint.bp)
 
 
 if __name__ == "__main__":

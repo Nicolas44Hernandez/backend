@@ -2,10 +2,8 @@
 from flask_mongoengine import Document
 from mongoengine import EmbeddedDocument
 from mongoengine.fields import (
-    BooleanField,
     DateTimeField,
     EmbeddedDocumentField,
-    FloatField,
     IntField,
     ListField,
     ObjectIdField,
@@ -15,11 +13,13 @@ from mongoengine.fields import (
 
 class Exercise(Document):
     """
-    Define an exercise 
+    Define an exercise
     """
 
     # the identifier
-    oid = ObjectIdField(required=True)
+    # oid = ObjectIdField(required=True)
+    # exercise name
+    name = StringField(required=True)
     # Training section
     section = StringField(required=True)
     # exercise dificulty (0-5)
@@ -28,6 +28,8 @@ class Exercise(Document):
     duration = IntField(required=True)
     # Training description
     description = StringField(required=True)
+    # creation date
+    creation_date = DateTimeField(required=True)
     # url video
     video = StringField()
 
@@ -37,8 +39,6 @@ class Stage(EmbeddedDocument):
     Define an Stage
     """
 
-    # the identifier
-    oid = ObjectIdField(required=True)
     # number of exercises
     nb_exercises = IntField(required=True)
     # exercises list

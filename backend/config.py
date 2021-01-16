@@ -11,8 +11,7 @@ INDEX_MERGED_YAML = 0
 # Adapt for new environment variable links
 dic_env_var = {
     # database settings
-    "MONGODB_SETTINGS": {"host": "MONGO_URI"},   
-    
+    "MONGODB_SETTINGS": {"host": "MONGO_URI"},
 }
 
 ### Adapt to make fields merging available
@@ -102,21 +101,6 @@ def flatten(list_items: list):
     return res
 
 
-def flatten_filter(cfg: dict, fields: list):
-    """ Solves references in YAML files."""
-    for field in fields:
-        value = cfg
-        for sub_field in field[:-1]:
-            value = value[sub_field] if sub_field in value else None
-            if not value:
-                break
-        if value and field[-1] in value and value[field[-1]]:
-            value[field[-1]] = flatten(
-                value[field[-1]]
-            )  # Flatten list in case of alias use
-    return cfg
-
-
 def load_config(
     additional_config_files: Iterable[str] = None, additional_config_dict: dict = None
 ):
@@ -178,9 +162,7 @@ def load_config_as_object(
     INDEX_MERGED_YAML = 0
     res_cfg = {}
     for key in cfg:
-        if not key.startswith(tuple(to_flatten_fields_tags)):
-            res_cfg[key] = cfg[key].get()
+        res_cfg[key] = cfg[key].get()
     logger.debug("Cleaned temporary YAML files and merging keys.")
-    res_cfg = flatten_filter(res_cfg, to_flatten_fields)
     logger.debug("Loaded successfully configuration.")
     return Struct(**res_cfg)

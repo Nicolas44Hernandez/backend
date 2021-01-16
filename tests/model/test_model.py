@@ -1,7 +1,7 @@
 from bson import ObjectId
 from datetime import datetime, timezone
 
-from backend.training.model import (
+from backend.model.data_model import (
     Training,
     Stage,
     Exercise,
@@ -20,11 +20,12 @@ def test_save_exercise(app, mongo):
     with app.app_context():
         assert mongo["exercise"].count() == 0
         Exercise(
-            oid=ObjectId(),
+            name="exercise name",
             section="infield",
             dificulty=5,
             duration=30,
             description=DESCRIPTION,
+            creation_date=datetime.now().date(),
             video="https://www.youtube.com/watch?v=CTavtQnB6Rk&t=335s",
         ).save()
 
@@ -37,18 +38,19 @@ def test_save_training(app, mongo):
         assert mongo["training"].count() == 0
 
         exercise = Exercise(
-            oid=ObjectId(),
+            name="exercise name",
             section="infield",
             dificulty=5,
             duration=30,
             description=DESCRIPTION,
+            creation_date=datetime.now().date(),
             video="https://www.youtube.com/watch?v=CTavtQnB6Rk&t=335s",
         ).save()
 
         exercises_list = []
-        exercises_list.append(str(exercise.oid))
+        exercises_list.append(str(exercise.id))
 
-        stage = Stage(oid=ObjectId(), nb_exercises=1, exercises=exercises_list)
+        stage = Stage(nb_exercises=1, exercises=exercises_list)
 
         Training(
             date=datetime.now(timezone.utc),

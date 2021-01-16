@@ -1,3 +1,4 @@
-from . import (  # noqa
+"""Training module"""
+"""from . import (  # noqa
     api_training,
-)
+)"""
