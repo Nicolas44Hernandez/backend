@@ -16,8 +16,6 @@ class Exercise(Document):
     Define an exercise
     """
 
-    # the identifier
-    # oid = ObjectIdField(required=True)
     # exercise name
     name = StringField(required=True)
     # Training section
@@ -39,6 +37,8 @@ class Stage(EmbeddedDocument):
     Define an Stage
     """
 
+    # Stage duration in minutes
+    duration = IntField(required=True)
     # number of exercises
     nb_exercises = IntField(required=True)
     # exercises list
@@ -50,6 +50,8 @@ class Training(Document):
     Define a Training
     """
 
+    # Training category
+    category = StringField(required=True)
     # Training  date
     date = DateTimeField(required=True)
     # Training place

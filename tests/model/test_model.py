@@ -50,9 +50,10 @@ def test_save_training(app, mongo):
         exercises_list = []
         exercises_list.append(str(exercise.id))
 
-        stage = Stage(nb_exercises=1, exercises=exercises_list)
+        stage = Stage(duration=60, nb_exercises=1, exercises=exercises_list)
 
         Training(
+            category="15U",
             date=datetime.now(timezone.utc),
             place="Hawks Stadium",
             nb_stages=1,

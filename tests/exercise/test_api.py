@@ -19,23 +19,34 @@ def test_put_exercise(client, mongo):
 
     data = response.get_json()
     assert response.status_code == 200
-    assert mongo["exercise"].count() == 1
+
     assert data["name"] == "backhand rolling"
     assert data["section"] == "infield"
     assert data["dificulty"] == 3
     assert data["duration"] == 30
     assert data["description"] == "hit backhand rollings"
     assert data["video"] == "https://www.youtube.com/watch?v=J-nK0fZV7-8"
-    # TODO: get exercise list and validate
+
+    # verify creation in mongo DB
+    assert mongo["exercise"].count() == 1
+    exercise = mongo["exercise"].find_one()
+    assert "backhand rolling" in exercise["name"]
+    assert "infield" in exercise["section"]
+    assert 3 == exercise["dificulty"]
+    assert 30 == exercise["duration"]
+    assert "hit backhand rollings" in exercise["description"]
+    assert "https://www.youtube.com/watch?v=J-nK0fZV7-8" in exercise["video"]
+    assert datetime.now().date() == exercise["creation_date"].date()
 
 
-def test_put_exercise_invalid(client):
+def test_put_exercise_invalid(client, mongo):
 
     response = client.put(
         "/api/v1/exercises/create",
         json={"invalid": {"tal": {"tal5": 1, "ta65": 1, "taa": 1}}},
     )
 
+    assert mongo["exercise"].count() == 0
     data = response.get_json()
     assert response.status_code == 422
     assert data["code"] == 422
@@ -202,6 +213,9 @@ def test_remove_exercise_by_id(client, mongo):
     response = client.delete("/api/v1/exercises/507f1f77bcf86cd799439013")
 
     assert response.status_code == 200
+
+    # verify suppression in DB
+    assert mongo["exercise"].count() == 5
 
     # get all exercises for verify suppression
     response = client.get("/api/v1/exercises")
