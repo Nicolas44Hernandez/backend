@@ -65,6 +65,44 @@ class TrainingSchema(Schema):
     tags = List(Str())
 
 
+class TrainingPostSchema(TrainingSchema):
+    # training id
+    _id = Str(required=True, data_key="id", attribute="id")
+
+
+def create_training(training: dict):
+    training_stages = []
+    for stage in training["stages"]:
+        stage_exercises = []
+        nb_exercises = 0
+        longest_duration = 0
+        for exercise in stage["exercises"]:
+            # verify that the exercise exists
+            ex = Exercise.objects.get_or_404(
+                id=ObjectId(exercise["id"])
+            )  # pylint: disable=no-member
+            stage_exercises.append(exercise["id"])
+            nb_exercises += 1
+            if longest_duration < ex.duration:
+                longest_duration = ex.duration
+
+        training_stage = Stage(
+            duration=longest_duration,
+            nb_exercises=nb_exercises,
+            exercises=stage_exercises,
+        )
+        training_stages.append(training_stage)
+
+    return Training(
+        category=training["category"],
+        date=training["date"],
+        place=training["place"],
+        nb_stages=training["nb_stages"],
+        tags=training["tags"],
+        stages=training_stages,
+    )
+
+
 @bp.route("")
 class NewTraining(MethodView):
     """ API to create / delete / update  a new training """
@@ -83,35 +121,30 @@ class NewTraining(MethodView):
     def put(self, put_data):
         """Create a new  training, return training in json"""
 
-        training_stages = []
-        for stage in put_data["stages"]:
-            stage_exercises = []
-            nb_exercises = 0
-            longest_duration = 0
-            for exercise in stage["exercises"]:
-                # verify that the exercise exists
-                ex = Exercise.objects.get_or_404(
-                    id=ObjectId(exercise["id"])
-                )  # pylint: disable=no-member
-                stage_exercises.append(exercise["id"])
-                nb_exercises += 1
-                if longest_duration < ex.duration:
-                    longest_duration = ex.duration
+        training = create_training(put_data)
+        training.save()
+        return training
 
-            training_stage = Stage(
-                duration=longest_duration,
-                nb_exercises=nb_exercises,
-                exercises=stage_exercises,
-            )
-            training_stages.append(training_stage)
+    @bp.arguments(
+        TrainingPostSchema, description="The training to modify in json",
+    )
+    @bp.response(
+        TrainingSchema, description="The modified training in json",
+    )  # pylint: disable=no-self-use
+    @bp.doc(security=[{"bearerAuth": []}], responses={401: "UNAUTHORIZED"})
+    # TODO: authentification
+    # @jwt_required
+    def post(self, post_data):
+        """Modify a training, return training in json"""
+        new_training = create_training(post_data)
 
-        training = Training(
-            category=put_data["category"],
-            date=put_data["date"],
-            place=put_data["place"],
-            nb_stages=put_data["nb_stages"],
-            tags=put_data["tags"],
-            stages=training_stages,
-        ).save()
+        training = Training.objects.get_or_404(id=post_data["id"]).modify(
+            category=new_training.category,
+            date=new_training.date,
+            place=new_training.place,
+            nb_stages=len(new_training.stages),
+            stages=new_training.stages,
+            tags=new_training.tags,
+        )  # pylint: disable=no-member"""
 
         return training
