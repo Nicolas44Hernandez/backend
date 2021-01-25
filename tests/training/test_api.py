@@ -1,11 +1,6 @@
-from bson.objectid import ObjectId
 from datetime import datetime
 
-from backend.model.data_model import (
-    Training,
-    Stage,
-    Exercise,
-)
+from tests.fill_date_base import create_exercise, create_training, create_stage
 
 
 def test_put_training(client, mongo):
@@ -79,8 +74,12 @@ def test_post_modify_training(client, mongo):
     # init the exercises collection
     mongo["exercise"].insert_many(exercises)
 
+    # init training collection
     stage = create_stage(exercises=exercises, duration=60)
-    training = insert_training(stages=[stage], date=datetime.now().date())
+    training = create_training(
+        stages=[stage], date=datetime.now(), _id="11111f77bcf86cd799430001"
+    )
+    mongo["training"].insert_one(training)
 
     # verify creation in mongo DB
     assert mongo["training"].count() == 1
@@ -97,7 +96,7 @@ def test_post_modify_training(client, mongo):
     response = client.post(
         "/api/v1/trainings",
         json={
-            "id": str(training.id),
+            "id": str(training_1["_id"]),
             "category": "15U",
             "date": date.isoformat(),
             "place": "Chateau Giron",
@@ -123,50 +122,38 @@ def test_post_modify_training(client, mongo):
     assert 1 == len(training["stages"][1]["exercises"])
 
 
-def create_exercise(_id: str, name: str = "ex name", section: str = "infield"):
-    return {
-        "_id": ObjectId(_id),
-        "name": "backhand rolling",
-        "section": section,
-        "dificulty": 3,
-        "duration": 30,
-        "description": "hit backhand rollings",
-        "creation_date": datetime.now(),
-        "video": "https://www.youtube.com/watch?v=J-nK0fZV7-8",
-    }
+def test_delete_training(client, mongo):
 
+    exercises = [
+        create_exercise("507f1f77bcf86cd799439011", section="infield"),
+        create_exercise("507f1f77bcf86cd799439012", section="outfield"),
+        create_exercise("507f1f77bcf86cd799439013", section="pitching"),
+        create_exercise("507f1f77bcf86cd799439014", section="infield"),
+        create_exercise("507f1f77bcf86cd799439015", section="outfield"),
+        create_exercise("507f1f77bcf86cd799439016", section="infield"),
+    ]
+    # init the exercises collection
+    mongo["exercise"].insert_many(exercises)
 
-def create_stage(exercises: [], duration: int = 60):
-    exercises_list = []
-
-    for exercise in exercises:
-        exercise = Exercise(
-            id=exercise["_id"],
-            name=exercise["name"],
-            section=exercise["section"],
-            dificulty=exercise["dificulty"],
-            duration=exercise["duration"],
-            description=exercise["description"],
-            creation_date=exercise["creation_date"],
-            video=exercise["video"],
-        ).save()
-        exercises_list.append(str(exercise.id))
-
-    return Stage(
-        duration=duration, nb_exercises=len(exercises), exercises=exercises_list
+    # init training collection
+    stage = create_stage(exercises=exercises, duration=60)
+    training = create_training(
+        stages=[stage], date=datetime.now(), _id="11111f77bcf86cd799430001"
     )
+    mongo["training"].insert_one(training)
 
+    # verify creation in mongo DB
+    assert mongo["training"].count() == 1
+    training_1 = mongo["training"].find_one()
+    assert "18U" in training_1["category"]
+    assert "Hawks Stadium" in training["place"]
+    assert 1 == training_1["nb_stages"]
+    assert 1 == len(training_1["stages"])
+    assert 6 == training_1["stages"][0]["nb_exercises"]
+    assert 6 == len(training_1["stages"][0]["exercises"])
 
-def insert_training(
-    stages: [], date: datetime, category: str = "18U", place: str = "Hawks Stadium"
-):
-    training = Training(
-        category=category,
-        date=date,
-        place=place,
-        nb_stages=len(stages),
-        stages=stages,
-        tags=["tag1", "tag2", "tag3"],
-    ).save()
+    response = client.delete("/api/v1/trainings", json={"id": str(training_1["_id"])},)
+    assert response.status_code == 200
+    # verify update in mongo DB
+    assert mongo["training"].count() == 0
 
-    return training

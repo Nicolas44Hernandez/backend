@@ -1,14 +1,14 @@
 """Exercises management API."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from bson.objectid import ObjectId
 
 from flask.views import MethodView
 from flask_jwt_extended import jwt_required
 from flask import Response
 from marshmallow import Schema
-from marshmallow.fields import Str, Int, List, Nested, Date
+from marshmallow.fields import Str, Int, List, Nested, Date, DateTime
 
 from .blueprint import bp
 from backend.model.data_model import Exercise, Stage, Training
@@ -66,6 +66,11 @@ class TrainingSchema(Schema):
 
 
 class TrainingPostSchema(TrainingSchema):
+    # training id
+    _id = Str(required=True, data_key="id", attribute="id")
+
+
+class TrainingDeleteSchema(Schema):
     # training id
     _id = Str(required=True, data_key="id", attribute="id")
 
@@ -148,3 +153,75 @@ class NewTraining(MethodView):
         )  # pylint: disable=no-member"""
 
         return training
+
+    @bp.arguments(
+        TrainingDeleteSchema, description="The training to delete id",
+    )
+    @bp.doc(security=[{"bearerAuth": []}], responses={401: "UNAUTHORIZED"})
+    # TODO: authentification
+    # @jwt_required
+    def delete(self, post_data):
+        """Delete a training"""
+
+        Training.objects.get_or_404(
+            id=post_data["id"]
+        ).delete()  # pylint: disable=no-member"""
+
+        return {}
+
+
+class ResumedTrainingSchema(Schema):
+    """ Schema for Training """
+
+    # Training category
+    category = Str(required=True, description="The training category", example="15U")
+    # Training  date
+    date = DateTime(
+        required=True,
+        description="The etraining datetime ('YYYY-MM-DD HH:MM:SS')",
+        example="2020-04-01T08:06:47.890Z",
+    )
+    # Training place
+    place = Str(
+        required=True, description="The training place", example="Hawks Stadium"
+    )
+
+
+class GetNextTrainingSchema(Schema):
+    # Training category
+    category = Str(required=True, description="The training category", example="15U")
+
+
+@bp.route("/next_training")
+class NextTraining(MethodView):
+    """ API to get next training """
+
+    @bp.arguments(GetNextTrainingSchema(), location="query")
+    # TODO: logs
+    @bp.response(
+        ResumedTrainingSchema, description="The next training in json",
+    )  # pylint: disable=no-self-use
+    @bp.doc(security=[{"bearerAuth": []}], responses={401: "UNAUTHORIZED"})
+    # TODO: authentification
+    # @jwt_required
+    def get(self, args):
+        """get next  training, return training in json"""
+        trainings = Training.objects().all()  # pylint: disable=no-member
+        now = datetime.now()
+        next_training_date = None
+        next_training = None
+        for training in trainings:
+            if training["date"] > now:
+                if training["category"] == args["category"]:
+                    if next_training is None:
+                        next_training = training
+                        next_training_date = training["date"]
+                    elif training["date"] < next_training_date:
+                        next_training = training
+                        next_training_date = training["date"]
+
+        return next_training
+
+
+# TODO: modify date param in training
+
