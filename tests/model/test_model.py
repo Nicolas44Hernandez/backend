@@ -54,7 +54,7 @@ def test_save_training(app, mongo):
 
         Training(
             category="15U",
-            date=datetime.now(timezone.utc),
+            date_time=datetime.now(timezone.utc),
             place="Hawks Stadium",
             nb_stages=1,
             stages=[stage],

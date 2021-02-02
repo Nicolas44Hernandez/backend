@@ -45,10 +45,10 @@ class TrainingSchema(Schema):
 
     # Training category
     category = Str(required=True, description="The training category", example="15U")
-    # Training  date
-    date = Date(
+    # Training  datetime
+    date_time = DateTime(
         required=True,
-        description="The etraining date ('YYYY-MM-DD HH:MM:SS')",
+        description="The training datetime ('YYYY-MM-DD HH:MM:SS')",
         example="2020-04-01T08:06:47.890Z",
     )
     # Training place
@@ -100,7 +100,7 @@ def create_training(training: dict):
 
     return Training(
         category=training["category"],
-        date=training["date"],
+        date_time=training["date_time"],
         place=training["place"],
         nb_stages=training["nb_stages"],
         tags=training["tags"],
@@ -145,7 +145,7 @@ class NewTraining(MethodView):
 
         training = Training.objects.get_or_404(id=post_data["id"]).modify(
             category=new_training.category,
-            date=new_training.date,
+            date_time=new_training.date_time,
             place=new_training.place,
             nb_stages=len(new_training.stages),
             stages=new_training.stages,
@@ -176,7 +176,7 @@ class ResumedTrainingSchema(Schema):
     # Training category
     category = Str(required=True, description="The training category", example="15U")
     # Training  date
-    date = DateTime(
+    date_time = DateTime(
         required=True,
         description="The etraining datetime ('YYYY-MM-DD HH:MM:SS')",
         example="2020-04-01T08:06:47.890Z",
@@ -211,17 +211,14 @@ class NextTraining(MethodView):
         next_training_date = None
         next_training = None
         for training in trainings:
-            if training["date"] > now:
+            if training["date_time"] > now:
                 if training["category"] == args["category"]:
                     if next_training is None:
                         next_training = training
-                        next_training_date = training["date"]
-                    elif training["date"] < next_training_date:
+                        next_training_date = training["date_time"]
+                    elif training["date_time"] < next_training_date:
                         next_training = training
-                        next_training_date = training["date"]
+                        next_training_date = training["date_time"]
 
         return next_training
-
-
-# TODO: modify date param in training
 

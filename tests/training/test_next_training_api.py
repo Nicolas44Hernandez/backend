@@ -16,7 +16,7 @@ def test_get_next_training(client, mongo):
     assert response.status_code == 200
     training = response.get_json()
     assert date_3.replace(microsecond=0, tzinfo=None) == datetime.fromisoformat(
-        training["date"]
+        training["date_time"]
     ).replace(microsecond=0, tzinfo=None)
 
 
@@ -46,22 +46,22 @@ def fill_cololections(mongo):
     # init training collection
     stage_1 = create_stage(exercises=exercises_1, duration=60)
     training_1 = create_training(
-        stages=[stage_1], date=date_1, _id="11111f77bcf86cd799430001"
+        stages=[stage_1], date_time=date_1, _id="11111f77bcf86cd799430001"
     )
 
     stage_2 = create_stage(exercises=exercises_2, duration=60)
     training_2 = create_training(
-        stages=[stage_2], date=date_2, _id="11111f77bcf86cd799430002"
+        stages=[stage_2], date_time=date_2, _id="11111f77bcf86cd799430002"
     )
 
     stage_3 = create_stage(exercises=exercises_3, duration=60)
     training_3 = create_training(
-        stages=[stage_3], date=date_3, _id="11111f77bcf86cd799430002"
+        stages=[stage_3], date_time=date_3, _id="11111f77bcf86cd799430002"
     )
 
     stage_4 = create_stage(exercises=exercises_4, duration=60)
     training_4 = create_training(
-        stages=[stage_4], date=date_4, _id="11111f77bcf86cd799430002"
+        stages=[stage_4], date_time=date_4, _id="11111f77bcf86cd799430002"
     )
 
     trainings = [training_1, training_2, training_3, training_4]

@@ -26,7 +26,7 @@ def create_stage(exercises: [], duration: int = 60):
 
 def create_training(
     stages: [],
-    date: datetime,
+    date_time: datetime,
     _id: str = "11111f77bcf86cd799430001",
     category: str = "18U",
     place: str = "Hawks Stadium",
@@ -34,7 +34,7 @@ def create_training(
 
     return {
         "category": category,
-        "date": date,
+        "date_time": date_time,
         "place": place,
         "nb_stages": len(stages),
         "stages": stages,

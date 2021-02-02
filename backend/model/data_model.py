@@ -52,8 +52,8 @@ class Training(Document):
 
     # Training category
     category = StringField(required=True)
-    # Training  date
-    date = DateTimeField(required=True)
+    # Training  datetime
+    date_time = DateTimeField(required=True)
     # Training place
     place = StringField(required=True)
     # number of stages
