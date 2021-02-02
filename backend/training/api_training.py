@@ -1,14 +1,14 @@
 """Exercises management API."""
-
+import pytz
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from bson.objectid import ObjectId
 
 from flask.views import MethodView
 from flask_jwt_extended import jwt_required
 from flask import Response
 from marshmallow import Schema
-from marshmallow.fields import Str, Int, List, Nested, Date, DateTime
+from marshmallow.fields import Str, Int, List, Nested, Date, DateTime, Bool
 
 from .blueprint import bp
 from backend.model.data_model import Exercise, Stage, Training
@@ -70,9 +70,18 @@ class TrainingPostSchema(TrainingSchema):
     _id = Str(required=True, data_key="id", attribute="id")
 
 
-class TrainingDeleteSchema(Schema):
+class TrainingIdSchema(Schema):
     # training id
     _id = Str(required=True, data_key="id", attribute="id")
+
+
+class TrainingListArgsSchema(Schema):
+    # Training category
+    category = Str(required=True, description="The training category", example="15U")
+    # date
+    date = Date(description="date to query ('YYYY-MM-DD')", example="2020-04-01",)
+    # week
+    week = Bool(description="if true retrieves nex five days trainings", example=True)
 
 
 def create_training(training: dict):
@@ -109,7 +118,7 @@ def create_training(training: dict):
 
 
 @bp.route("")
-class NewTraining(MethodView):
+class ApiTraining(MethodView):
     """ API to create / delete / update  a new training """
 
     # TODO: logs
@@ -155,7 +164,7 @@ class NewTraining(MethodView):
         return training
 
     @bp.arguments(
-        TrainingDeleteSchema, description="The training to delete id",
+        TrainingIdSchema, description="The training to delete id",
     )
     @bp.doc(security=[{"bearerAuth": []}], responses={401: "UNAUTHORIZED"})
     # TODO: authentification
@@ -168,6 +177,20 @@ class NewTraining(MethodView):
         ).delete()  # pylint: disable=no-member"""
 
         return {}
+
+    @bp.arguments(TrainingIdSchema(), location="query")
+    @bp.response(TrainingSchema())
+    @bp.doc(security=[{"bearerAuth": []}], responses={401: "UNAUTHORIZED"})
+    # TODO: authentification
+    # @jwt_required
+    def get(self, args):
+        """Get a training """
+
+        training = Training.objects.get_or_404(
+            id=ObjectId(args["id"])
+        )  # pylint: disable=no-member"""
+
+        return training
 
 
 class ResumedTrainingSchema(Schema):
@@ -207,11 +230,13 @@ class NextTraining(MethodView):
     def get(self, args):
         """get next  training, return training in json"""
         trainings = Training.objects().all()  # pylint: disable=no-member
-        now = datetime.now()
+
+        now = datetime.now(timezone.utc)
+
         next_training_date = None
         next_training = None
         for training in trainings:
-            if training["date_time"] > now:
+            if training["date_time"].astimezone(timezone.utc) > now:
                 if training["category"] == args["category"]:
                     if next_training is None:
                         next_training = training
@@ -221,4 +246,37 @@ class NextTraining(MethodView):
                         next_training_date = training["date_time"]
 
         return next_training
+
+
+@bp.route("/list")
+class TrainingList(MethodView):
+    """API to get a training list
+        if week=true returns trainings list for next 5 days
+        if date in args: returns trainings list for a date
+        
+        """
+
+    @bp.arguments(TrainingListArgsSchema(), location="query")
+    # TODO: logs
+    @bp.response(
+        ResumedTrainingSchema(many=True), description="The next training in json",
+    )  # pylint: disable=no-self-use
+    @bp.doc(security=[{"bearerAuth": []}], responses={401: "UNAUTHORIZED"})
+    # TODO: authentification
+    # @jwt_required
+    def get(self, args):
+        """get training list in json"""
+
+        if "date" in args:
+            start = args["date"]
+            end = args["date"] + timedelta(days=1)
+
+        query = {
+            "date_time__gte": start.isoformat(),
+            "date_time__lt": end.isoformat(),
+        }
+
+        trainings = Training.objects(**query)
+
+        return trainings
 

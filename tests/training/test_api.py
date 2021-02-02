@@ -3,6 +3,39 @@ from datetime import datetime
 from tests.fill_date_base import create_exercise, create_training, create_stage
 
 
+def test_get_training(client, mongo):
+
+    exercises = [
+        create_exercise("507f1f77bcf86cd799439011", section="infield"),
+        create_exercise("507f1f77bcf86cd799439012", section="outfield"),
+        create_exercise("507f1f77bcf86cd799439013", section="pitching"),
+        create_exercise("507f1f77bcf86cd799439014", section="infield"),
+        create_exercise("507f1f77bcf86cd799439015", section="outfield"),
+        create_exercise("507f1f77bcf86cd799439016", section="infield"),
+    ]
+    # init the exercises collection
+    mongo["exercise"].insert_many(exercises)
+
+    # init training collection
+    stage = create_stage(exercises=exercises, duration=60)
+    training = create_training(
+        stages=[stage], date_time=datetime.now(), _id="11111f77bcf86cd799430001"
+    )
+    mongo["training"].insert_one(training)
+
+    # verify creation in mongo DB
+    training_1 = mongo["training"].find_one()
+    _id = str(training_1["_id"])
+
+    response = client.get("/api/v1/trainings?id=" + _id)
+
+    assert response.status_code == 200
+    # verify update in mongo DB
+    assert mongo["training"].count() == 1
+    training = mongo["training"].find_one()
+    assert training_1 == training
+
+
 def test_put_training(client, mongo):
 
     # init the exercises collection
