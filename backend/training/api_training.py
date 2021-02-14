@@ -129,8 +129,6 @@ def create_training(training: dict):
 class ApiTraining(MethodView):
     """ API to create / delete / update  a new training """
 
-    # TODO: logs
-
     @bp.arguments(
         TrainingSchema, description="The training to modify in json id required",
     )
@@ -142,6 +140,11 @@ class ApiTraining(MethodView):
     # @jwt_required
     def post(self, post_data, training_id):
         """Modify a training, return training in json"""
+
+        logger.debug("Modify training id=%s", training_id)
+        logger.debug("data:")
+        logger.debug(str(post_data))
+
         new_training = create_training(post_data)
 
         training = Training.objects.get_or_404(id=training_id).modify(
@@ -161,6 +164,8 @@ class ApiTraining(MethodView):
     def delete(self, training_id):
         """Delete a training"""
 
+        logger.debug("Delete training id=%s", training_id)
+
         Training.objects.get_or_404(
             id=training_id
         ).delete()  # pylint: disable=no-member"""
@@ -173,6 +178,8 @@ class ApiTraining(MethodView):
     # @jwt_required
     def get(self, training_id):
         """Get a training """
+
+        logger.debug("Get training id=%s", training_id)
 
         training = Training.objects.get_or_404(
             id=ObjectId(training_id)
@@ -216,13 +223,15 @@ class ApiNewTraining(MethodView):
     # @jwt_required
     def put(self, put_data):
         """Create a new  training, return training in json"""
+        logger.debug("Create a new training")
+        logger.debug("data:")
+        logger.debug(str(put_data))
 
         training = create_training(put_data)
         training.save()
         return training
 
     @bp.arguments(GetTrainingListQuerySchema(), location="query")
-    # TODO: logs
     @bp.response(
         ResumedTrainingSchema(many=True), description="The next trainings list in json",
     )  # pylint: disable=no-self-use
@@ -231,6 +240,9 @@ class ApiNewTraining(MethodView):
     # @jwt_required
     def get(self, args):
         """get training list"""
+        logger.debug("Get list of trainings")
+        logger.debug("args:")
+        logger.debug(str(args))
 
         queries = []
 
@@ -264,7 +276,6 @@ class NexTrainingSchema(Schema):
 
 @bp.route("/next")
 class ApiNextTraining(MethodView):
-    # TODO: logs
     @bp.arguments(NexTrainingSchema(), location="query")
     @bp.response(
         ResumedTrainingSchema(), description="The next training in json",
@@ -274,6 +285,10 @@ class ApiNextTraining(MethodView):
     # @jwt_required
     def get(self, args):
         """get next training"""
+        logger.debug("Get next training")
+        logger.debug("args:")
+        logger.debug(str(args))
+
         now = datetime.now(timezone.utc)
         query = Q(date_time__gte=now)
 

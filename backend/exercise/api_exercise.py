@@ -72,8 +72,6 @@ class ExerciseListArgsSchema(Schema):
 class ExercisesList(MethodView):
     """ API to list exercises """
 
-    # TODO: logs
-
     @bp.arguments(
         ExerciseListArgsSchema, location="query",
     )
@@ -89,10 +87,11 @@ class ExercisesList(MethodView):
         Select all the exercises.
         If section specified, select the exercises from the section.
         """
-
+        logger.debug("get exercise list ")
         query = {}
 
         if "section" in args:
+            logger.debug("section=%s", args["section"])
             query["section"] = args["section"]
 
         exercises = Exercise.objects(**query)  # pylint: disable=no-member
@@ -121,6 +120,8 @@ class SingleExercise(MethodView):
     def get(self, exercise_id):
         """Get a single exercise """
 
+        logger.debug("Get exercise with id=%s", exercise_id)
+
         exercises = Exercise.objects.get_or_404(
             id=ObjectId(exercise_id)
         )  # pylint: disable=no-member
@@ -133,6 +134,8 @@ class SingleExercise(MethodView):
     def delete(self, exercise_id):
         """delete a single exercise """
 
+        logger.debug("Delete exercise with id=%s", exercise_id)
+
         Exercise.objects.get_or_404(
             id=ObjectId(exercise_id)
         ).delete()  # pylint: disable=no-member
@@ -143,8 +146,6 @@ class SingleExercise(MethodView):
 @bp.route("/create")
 class Exercises(MethodView):
     """ API to create or update an exercise """
-
-    # TODO: logs
 
     @bp.arguments(
         ExerciseArgsSchema, description="The new exercise in json",
@@ -157,6 +158,9 @@ class Exercises(MethodView):
     # @jwt_required
     def put(self, put_data):
         """Create a new  exercise,return exercise in json"""
+
+        logger.debug("Create a new exercise, data:")
+        logger.debug(str(put_data))
 
         exercise = Exercise(
             name=put_data["name"],
