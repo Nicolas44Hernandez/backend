@@ -12,7 +12,7 @@ date_4 = datetime.now(timezone.utc) + timedelta(days=2)
 
 def test_get_next_training(client, mongo):
     fill_cololections(mongo)
-    response = client.get("/api/v1/trainings/next_training?category=18U")
+    response = client.get("/api/v1/trainings/next?category=18U")
     assert response.status_code == 200
     training = response.get_json()
     assert date_3.replace(microsecond=0, tzinfo=None) == datetime.fromisoformat(

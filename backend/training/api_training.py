@@ -1,17 +1,20 @@
 """Exercises management API."""
-import pytz
 import logging
-from datetime import datetime, timezone, timedelta
+from functools import reduce
+from datetime import datetime, timezone
 from bson.objectid import ObjectId
 
 from flask.views import MethodView
-from flask_jwt_extended import jwt_required
-from flask import Response
+
+# from flask_jwt_extended import jwt_required
 from marshmallow import Schema
 from marshmallow.fields import Str, Int, List, Nested, Date, DateTime, Bool
+from mongoengine.queryset.visitor import Q
 
 from .blueprint import bp
 from backend.model.data_model import Exercise, Stage, Training
+from backend.apihelpers import DatetimeRangeQuerySchema
+
 
 logger = logging.getLogger(__name__)
 
@@ -65,11 +68,6 @@ class TrainingSchema(Schema):
     tags = List(Str())
 
 
-class TrainingPostSchema(TrainingSchema):
-    # training id
-    _id = Str(required=True, data_key="id", attribute="id")
-
-
 class TrainingIdSchema(Schema):
     # training id
     _id = Str(required=True, data_key="id", attribute="id")
@@ -117,30 +115,24 @@ def create_training(training: dict):
     )
 
 
-@bp.route("")
+@bp.route(
+    "/<training_id>",
+    parameters=[
+        {
+            "name": "training_id",
+            "description": "The id of the training to retrieve",
+            "example": "507f1f77bcf86cd799439011",
+            "in": "path",
+        }
+    ],
+)
 class ApiTraining(MethodView):
     """ API to create / delete / update  a new training """
 
     # TODO: logs
 
     @bp.arguments(
-        TrainingSchema, description="The new training in json",
-    )
-    @bp.response(
-        TrainingSchema, description="The new training in json",
-    )  # pylint: disable=no-self-use
-    @bp.doc(security=[{"bearerAuth": []}], responses={401: "UNAUTHORIZED"})
-    # TODO: authentification
-    # @jwt_required
-    def put(self, put_data):
-        """Create a new  training, return training in json"""
-
-        training = create_training(put_data)
-        training.save()
-        return training
-
-    @bp.arguments(
-        TrainingPostSchema, description="The training to modify in json",
+        TrainingSchema, description="The training to modify in json id required",
     )
     @bp.response(
         TrainingSchema, description="The modified training in json",
@@ -148,11 +140,11 @@ class ApiTraining(MethodView):
     @bp.doc(security=[{"bearerAuth": []}], responses={401: "UNAUTHORIZED"})
     # TODO: authentification
     # @jwt_required
-    def post(self, post_data):
+    def post(self, post_data, training_id):
         """Modify a training, return training in json"""
         new_training = create_training(post_data)
 
-        training = Training.objects.get_or_404(id=post_data["id"]).modify(
+        training = Training.objects.get_or_404(id=training_id).modify(
             category=new_training.category,
             date_time=new_training.date_time,
             place=new_training.place,
@@ -163,34 +155,35 @@ class ApiTraining(MethodView):
 
         return training
 
-    @bp.arguments(
-        TrainingIdSchema, description="The training to delete id",
-    )
     @bp.doc(security=[{"bearerAuth": []}], responses={401: "UNAUTHORIZED"})
     # TODO: authentification
     # @jwt_required
-    def delete(self, post_data):
+    def delete(self, training_id):
         """Delete a training"""
 
         Training.objects.get_or_404(
-            id=post_data["id"]
+            id=training_id
         ).delete()  # pylint: disable=no-member"""
 
         return {}
 
-    @bp.arguments(TrainingIdSchema(), location="query")
     @bp.response(TrainingSchema())
     @bp.doc(security=[{"bearerAuth": []}], responses={401: "UNAUTHORIZED"})
     # TODO: authentification
     # @jwt_required
-    def get(self, args):
+    def get(self, training_id):
         """Get a training """
 
         training = Training.objects.get_or_404(
-            id=ObjectId(args["id"])
+            id=ObjectId(training_id)
         )  # pylint: disable=no-member"""
 
         return training
+
+
+class GetTrainingListQuerySchema(DatetimeRangeQuerySchema):
+    # Training category
+    category = Str(description="The training category", example="18U", default="18U")
 
 
 class ResumedTrainingSchema(Schema):
@@ -210,28 +203,81 @@ class ResumedTrainingSchema(Schema):
     )
 
 
-class GetNextTrainingSchema(Schema):
-    # Training category
-    category = Str(required=True, description="The training category", example="15U")
+@bp.route("")
+class ApiNewTraining(MethodView):
+    @bp.arguments(
+        TrainingSchema, description="The new training in json",
+    )
+    @bp.response(
+        TrainingSchema, description="The new training in json",
+    )  # pylint: disable=no-self-use
+    @bp.doc(security=[{"bearerAuth": []}], responses={401: "UNAUTHORIZED"})
+    # TODO: authentification
+    # @jwt_required
+    def put(self, put_data):
+        """Create a new  training, return training in json"""
 
+        training = create_training(put_data)
+        training.save()
+        return training
 
-@bp.route("/next_training")
-class NextTraining(MethodView):
-    """ API to get next training """
-
-    @bp.arguments(GetNextTrainingSchema(), location="query")
+    @bp.arguments(GetTrainingListQuerySchema(), location="query")
     # TODO: logs
     @bp.response(
-        ResumedTrainingSchema, description="The next training in json",
+        ResumedTrainingSchema(many=True), description="The next trainings list in json",
     )  # pylint: disable=no-self-use
     @bp.doc(security=[{"bearerAuth": []}], responses={401: "UNAUTHORIZED"})
     # TODO: authentification
     # @jwt_required
     def get(self, args):
-        """get next  training, return training in json"""
-        trainings = Training.objects().all()  # pylint: disable=no-member
+        """get training list"""
 
+        queries = []
+
+        if "start" in args:
+            queries.append(Q(date_time__gte=args["start"]))
+
+        if "end" in args:
+            queries.append(Q(date_time__lt=args["end"]))
+
+        if "category" not in args:
+            args["category"] = "18U"
+
+        queries.append(Q(category=args["category"]))
+
+        query = None
+
+        if len(queries) == 1:
+            query = queries[0]
+        elif len(queries) >= 2:
+            query = reduce(lambda q1, q2: q1 & q2, queries)
+
+        return Training.objects(query)  # pylint: disable=no-member
+
+
+class NexTrainingSchema(Schema):
+    # Training category
+    category = Str(
+        description="The training category", required=True, example="18U", default="18U"
+    )
+
+
+@bp.route("/next")
+class ApiNextTraining(MethodView):
+    # TODO: logs
+    @bp.arguments(NexTrainingSchema(), location="query")
+    @bp.response(
+        ResumedTrainingSchema(), description="The next training in json",
+    )  # pylint: disable=no-self-use
+    @bp.doc(security=[{"bearerAuth": []}], responses={401: "UNAUTHORIZED"})
+    # TODO: authentification
+    # @jwt_required
+    def get(self, args):
+        """get next training"""
         now = datetime.now(timezone.utc)
+        query = Q(date_time__gte=now)
+
+        trainings = Training.objects(query)  # pylint: disable=no-member
 
         next_training_date = None
         next_training = None
@@ -246,37 +292,3 @@ class NextTraining(MethodView):
                         next_training_date = training["date_time"]
 
         return next_training
-
-
-@bp.route("/list")
-class TrainingList(MethodView):
-    """API to get a training list
-        if week=true returns trainings list for next 5 days
-        if date in args: returns trainings list for a date
-        
-        """
-
-    @bp.arguments(TrainingListArgsSchema(), location="query")
-    # TODO: logs
-    @bp.response(
-        ResumedTrainingSchema(many=True), description="The next training in json",
-    )  # pylint: disable=no-self-use
-    @bp.doc(security=[{"bearerAuth": []}], responses={401: "UNAUTHORIZED"})
-    # TODO: authentification
-    # @jwt_required
-    def get(self, args):
-        """get training list in json"""
-
-        if "date" in args:
-            start = args["date"]
-            end = args["date"] + timedelta(days=1)
-
-        query = {
-            "date_time__gte": start.isoformat(),
-            "date_time__lt": end.isoformat(),
-        }
-
-        trainings = Training.objects(**query)
-
-        return trainings
-

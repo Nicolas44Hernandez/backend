@@ -27,7 +27,7 @@ def test_get_training(client, mongo):
     training_1 = mongo["training"].find_one()
     _id = str(training_1["_id"])
 
-    response = client.get("/api/v1/trainings?id=" + _id)
+    response = client.get("/api/v1/trainings/" + _id)
 
     assert response.status_code == 200
     # verify update in mongo DB
@@ -130,9 +130,8 @@ def test_post_modify_training(client, mongo):
     date_time = datetime.now()
 
     response = client.post(
-        "/api/v1/trainings",
+        "/api/v1/trainings/" + str(training_1["_id"]),
         json={
-            "id": str(training_1["_id"]),
             "category": "15U",
             "date_time": date_time.isoformat(),
             "place": "Chateau Giron",
@@ -188,7 +187,7 @@ def test_delete_training(client, mongo):
     assert 6 == training_1["stages"][0]["nb_exercises"]
     assert 6 == len(training_1["stages"][0]["exercises"])
 
-    response = client.delete("/api/v1/trainings", json={"id": str(training_1["_id"])},)
+    response = client.delete("/api/v1/trainings/" + str(training_1["_id"]))
     assert response.status_code == 200
     # verify update in mongo DB
     assert mongo["training"].count() == 0
